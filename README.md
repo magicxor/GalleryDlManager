@@ -16,6 +16,20 @@ AI agent ──(MCP/stdio)──> GalleryDl.McpServer ──(HTTP, compose netwo
                                    └── saves files to /downloads (bind mount) <── multipart response
 ```
 
+## Prebuilt artifacts
+
+Every version tag (`v*`) publishes:
+
+- A multi-arch (amd64/arm64) WebApi image on GHCR:
+  `ghcr.io/magicxor/gallerydl-webapi:<version>` (plus `latest`).
+- A framework-dependent, arch-neutral `GalleryDl.McpServer-<version>.tar.gz`/`.zip` on
+  [GitHub Releases](https://github.com/magicxor/GalleryDlManager/releases) — unpack and run with
+  `dotnet GalleryDl.McpServer.dll` on any machine/container with the .NET 10 runtime.
+
+The MCP server is not published as an image: it is a stdio component spawned by an MCP client,
+not a standalone service. Its Dockerfile only serves the local docker-compose setup below, which
+builds it from source.
+
 ## Quick start
 
 ```bash

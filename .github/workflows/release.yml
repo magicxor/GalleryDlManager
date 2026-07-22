@@ -1,0 +1,141 @@
+# On every version tag (v1.2.3):
+# 1. Builds and pushes the multi-arch (amd64+arm64) WebApi image to GHCR:
+#      ghcr.io/magicxor/gallerydl-webapi:{version,latest}
+#    Each arch is built natively on its own runner and pushed by digest,
+#    then the digests are merged into one multi-arch manifest list.
+# 2. Publishes the framework-dependent (arch-neutral IL) GalleryDl.McpServer
+#    build as tar.gz/zip assets on a GitHub Release, so consumers can pin a
+#    version and run it with `dotnet GalleryDl.McpServer.dll`.
+#    The MCP server is deliberately NOT published as an image: it is a stdio
+#    component spawned by an MCP client, not a self-sufficient service (the
+#    Dockerfile in src/GalleryDl.McpServer exists only for the local
+#    docker-compose setup, which builds it from source).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-webapi-image:
+    name: Build gallerydl-webapi (${{ matrix.runner.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - { os: ubuntu-26.04, arch: amd64 }
+          - { os: ubuntu-26.04-arm, arch: arm64 }
+    runs-on: ${{ matrix.runner.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: ./src
+          file: ./src/GalleryDl.WebApi/Dockerfile
+          platforms: linux/${{ matrix.runner.arch }}
+          cache-from: type=gha,scope=gallerydl-webapi-${{ matrix.runner.arch }}
+          cache-to: type=gha,scope=gallerydl-webapi-${{ matrix.runner.arch }},mode=max
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ github.repository_owner }}/gallerydl-webapi,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p ${{ runner.temp }}/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ matrix.runner.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge-manifests:
+    name: Merge manifests
+    needs: build-webapi-image
+    runs-on: ubuntu-26.04
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/gallerydl-webapi
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          docker buildx imagetools create \
+            --tag "$IMAGE:$VERSION" \
+            --tag "$IMAGE:latest" \
+            $(printf "$IMAGE@sha256:%s " *)
+
+      - name: Inspect image
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          docker buildx imagetools inspect "$IMAGE:$VERSION"
+
+  release-assets:
+    name: Publish release assets
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish GalleryDl.McpServer
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          dotnet publish src/GalleryDl.McpServer/GalleryDl.McpServer.csproj \
+            -c Release -o publish /p:UseAppHost=false /p:Version="$VERSION"
+
+      - name: Pack assets
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          tar -czf "GalleryDl.McpServer-$VERSION.tar.gz" -C publish .
+          (cd publish && zip -qr "../GalleryDl.McpServer-$VERSION.zip" .)
+          sha256sum "GalleryDl.McpServer-$VERSION.tar.gz" "GalleryDl.McpServer-$VERSION.zip" > checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            GalleryDl.McpServer-*.tar.gz
+            GalleryDl.McpServer-*.zip
+            checksums.txt
