@@ -22,6 +22,7 @@ internal sealed class GalleryTools(
         [Description("Absolute directory path to save the files into (must be under an allowed prefix, e.g. /downloads/my-dir).")] string path,
         [Description("Number of leading gallery items to skip.")] int skip = 0,
         [Description("Number of files to download (a configured server-side maximum applies).")] int take = 5,
+        [Description("Sort results by rating/score, highest first, instead of the site's default order (usually newest first). Only resources marked accordingly by list_resources support this.")] bool sortByRating = false,
         CancellationToken cancellationToken = default)
     {
         try
@@ -36,7 +37,7 @@ internal sealed class GalleryTools(
             if (pathPolicy.Validate(path) is { } pathError)
                 return $"Error: {pathError}";
 
-            var outcome = await api.DownloadAsync(resource, query, skip, take, path, cancellationToken);
+            var outcome = await api.DownloadAsync(resource, query, skip, take, sortByRating, path, cancellationToken);
             if (!outcome.Success)
                 return $"Download failed: {outcome.Error}";
 
@@ -56,13 +57,15 @@ internal sealed class GalleryTools(
     }
 
     [McpServerTool(Name = "list_resources")]
-    [Description("Lists the gallery resources available for download_gallery.")]
+    [Description("Lists the gallery resources available for download_gallery. Resources that can sort results by rating are marked with '(supports sortByRating)'.")]
     public async Task<string> ListResources(CancellationToken cancellationToken = default)
     {
         try
         {
             var resources = await api.ListResourcesAsync(cancellationToken);
-            return resources.Length == 0 ? "No resources are configured." : string.Join('\n', resources);
+            return resources.Length == 0
+                ? "No resources are configured."
+                : string.Join('\n', resources.Select(r => r.SupportsRatingSort ? $"{r.Name} (supports sortByRating)" : r.Name));
         }
         catch (OperationCanceledException)
         {

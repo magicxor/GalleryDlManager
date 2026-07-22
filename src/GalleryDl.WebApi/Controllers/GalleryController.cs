@@ -7,6 +7,8 @@ using Microsoft.Extensions.Options;
 
 namespace GalleryDl.WebApi.Controllers;
 
+public sealed record ResourceInfo(string Name, bool SupportsRatingSort);
+
 [ApiController]
 public sealed class GalleryController(
     GalleryDlRunner runner,
@@ -15,8 +17,10 @@ public sealed class GalleryController(
     ILogger<GalleryController> logger) : ControllerBase
 {
     [HttpGet("/api/resources")]
-    public ActionResult<IEnumerable<string>> GetResources() =>
-        Ok(options.Value.Resources.Keys.Order());
+    public ActionResult<IEnumerable<ResourceInfo>> GetResources() =>
+        Ok(options.Value.Resources
+            .OrderBy(r => r.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(r => new ResourceInfo(r.Key, r.Value.RatingSortUrlTemplate is not null)));
 
     [HttpGet("/api/download")]
     public async Task<IActionResult> Download(
@@ -24,6 +28,7 @@ public sealed class GalleryController(
         [FromQuery] string query,
         [FromQuery] int skip = 0,
         [FromQuery] int take = 5,
+        [FromQuery] string? sort = null,
         CancellationToken ct = default)
     {
         var o = options.Value;
@@ -44,7 +49,26 @@ public sealed class GalleryController(
             return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid take",
                 detail: $"Parameter 'take' must be between 1 and {o.MaxTake}.");
 
-        var url = resourceOptions.UrlTemplate.Replace("{query}", Uri.EscapeDataString(query.Trim()));
+        string urlTemplate;
+        if (string.IsNullOrWhiteSpace(sort) || sort.Trim().Equals("default", StringComparison.OrdinalIgnoreCase))
+        {
+            urlTemplate = resourceOptions.UrlTemplate;
+        }
+        else if (sort.Trim().Equals("rating", StringComparison.OrdinalIgnoreCase))
+        {
+            if (resourceOptions.RatingSortUrlTemplate is null)
+                return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Sort not supported",
+                    detail: $"Resource '{resource}' does not support sorting by rating. Resources that do: " +
+                            $"{string.Join(", ", o.Resources.Where(r => r.Value.RatingSortUrlTemplate is not null).Select(r => r.Key).Order())}.");
+            urlTemplate = resourceOptions.RatingSortUrlTemplate;
+        }
+        else
+        {
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid sort",
+                detail: "Parameter 'sort' must be omitted, 'default', or 'rating'.");
+        }
+
+        var url = urlTemplate.Replace("{query}", Uri.EscapeDataString(query.Trim()));
 
         GalleryDlResult result;
         try

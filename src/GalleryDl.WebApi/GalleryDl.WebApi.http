@@ -8,3 +8,7 @@ Accept: application/json
 GET {{GalleryDl.WebApi_HostAddress}}/api/download?resource=furry34.com&query=dragon&skip=2&take=3
 
 ###
+
+GET {{GalleryDl.WebApi_HostAddress}}/api/download?resource=safebooru.org&query=cat&take=3&sort=rating
+
+###

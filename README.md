@@ -71,15 +71,22 @@ Files appear on the host under `./downloads/dragons/` (the `/downloads` prefix i
 
 | Setting | Meaning | Default |
 | --- | --- | --- |
-| `Resources` | Map of resource id → `UrlTemplate` with a `{query}` placeholder | 59 preconfigured sites |
+| `Resources` | Map of resource id → `UrlTemplate` with a `{query}` placeholder, plus an optional `RatingSortUrlTemplate` (see below) | 59 preconfigured sites |
 | `AllowedExtensions` | Passed to gallery-dl as a `--filter` extension check | jpg, jpeg, png, gif, webp |
 | `BlacklistTags` | Passed as `--tags-blacklist` (requires gallery-dl ≥ 1.32) | ai-generated, ... |
 | `MaxTake` | Upper bound for the `take` query parameter | 50 |
 | `TimeoutSeconds` | gallery-dl execution timeout | 40 |
 | `ExtraArgs` | Extra CLI args appended verbatim | `[]` |
 
-Endpoints: `GET /api/resources`, `GET /api/download?resource=&query=&skip=&take=`
+Endpoints: `GET /api/resources`, `GET /api/download?resource=&query=&skip=&take=&sort=`
 (multipart/form-data on success; RFC 7807 problem JSON with 400/404/502/504 on errors).
+
+`sort=rating` returns results ordered by score, highest first. gallery-dl itself cannot reorder
+results, so this works by substituting `{query}` into the resource's `RatingSortUrlTemplate` — a
+variant of `UrlTemplate` with the site-specific sort syntax baked in (e.g.
+`...&tags={query}+sort:score:desc` on gelbooru-based sites, `...+order:score` on moebooru ones).
+Resources without a `RatingSortUrlTemplate` reject `sort=rating` with a 400; `GET /api/resources`
+reports which resources support it (`supportsRatingSort`).
 
 `skip`/`take` map to gallery-dl's 1-based inclusive `--range` as `(skip+1)-(skip+take)`. The API
 kills gallery-dl as soon as `take` files are downloaded (on album-style sites `--range` applies per

@@ -35,4 +35,12 @@ public sealed class ResourceOptions
     /// <summary>Gallery URL template with a {query} placeholder, e.g. "https://furry34.com/{query}".</summary>
     [Required]
     public string UrlTemplate { get; set; } = "";
+
+    /// <summary>
+    /// Optional variant of <see cref="UrlTemplate"/> with the site-specific "sort by score, highest
+    /// first" syntax baked in (e.g. "...&amp;tags={query}+sort:score:desc"). gallery-dl itself cannot
+    /// reorder results, so rating sorting only works where the site accepts it in the search query;
+    /// null means the resource cannot sort by rating.
+    /// </summary>
+    public string? RatingSortUrlTemplate { get; set; }
 }
