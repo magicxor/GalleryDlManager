@@ -85,7 +85,14 @@ public sealed class GalleryController(
                 var part = new StreamContent(System.IO.File.OpenRead(file));
                 part.Headers.ContentType = new MediaTypeHeaderValue(
                     contentTypeProvider.TryGetContentType(file, out var mediaType) ? mediaType : "application/octet-stream");
-                content.Add(part, "files", Path.GetFileName(file));
+
+                // Files from an NSFW resource get a ".nsfw" tag inserted before the extension
+                // (e.g. "image.jpg" -> "image.nsfw.jpg") so the marker survives on the saved file.
+                var fileName = Path.GetFileName(file);
+                if (resourceOptions.IsNsfw)
+                    fileName = $"{Path.GetFileNameWithoutExtension(fileName)}.nsfw{Path.GetExtension(fileName)}";
+
+                content.Add(part, "files", fileName);
             }
 
             Response.ContentType = content.Headers.ContentType!.ToString();
