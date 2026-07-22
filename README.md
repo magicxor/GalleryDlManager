@@ -61,7 +61,7 @@ Files appear on the host under `./downloads/dragons/` (the `/downloads` prefix i
 | `AllowedExtensions` | Passed to gallery-dl as a `--filter` extension check | jpg, jpeg, png, gif, webp |
 | `BlacklistTags` | Passed as `--tags-blacklist` (requires gallery-dl ≥ 1.32) | ai-generated, ... |
 | `MaxTake` | Upper bound for the `take` query parameter | 20 |
-| `TimeoutSeconds` | gallery-dl execution timeout | 300 |
+| `TimeoutSeconds` | gallery-dl execution timeout | 40 |
 | `ExtraArgs` | Extra CLI args appended verbatim | `[]` |
 
 Endpoints: `GET /api/resources`, `GET /api/download?resource=&query=&skip=&take=`
@@ -74,7 +74,7 @@ Endpoints: `GET /api/resources`, `GET /api/download?resource=&query=&skip=&take=
 | Setting | Meaning | Default |
 | --- | --- | --- |
 | `BaseUrl` | WebApi address | `http://gallerydl-webapi:8080` |
-| `TimeoutMinutes` | HTTP timeout towards the WebApi | 10 |
+| `TimeoutSeconds` | HTTP timeout towards the WebApi | 60 |
 | `AllowedPathPrefixes` | Directories `download_gallery` may write under | `/downloads`, `/tmp` |
 
 Path rules for `download_gallery`: the path must be absolute, must not contain `.`/`..` segments,

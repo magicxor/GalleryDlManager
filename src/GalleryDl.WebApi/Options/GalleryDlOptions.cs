@@ -13,7 +13,7 @@ public sealed class GalleryDlOptions
     public string? WorkRootPath { get; set; }
 
     [Range(10, 3600)]
-    public int TimeoutSeconds { get; set; } = 300;
+    public int TimeoutSeconds { get; set; } = 40;
 
     [Range(1, 100)]
     public int MaxTake { get; set; } = 20;

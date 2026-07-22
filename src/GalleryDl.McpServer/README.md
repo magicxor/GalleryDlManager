@@ -21,7 +21,7 @@ the downloaded files as a multipart response, and saves them to a local director
 | Setting | Env var | Default |
 | --- | --- | --- |
 | `GalleryDlApi:BaseUrl` | `GalleryDlApi__BaseUrl` | `http://gallerydl-webapi:8080` |
-| `GalleryDlApi:TimeoutMinutes` | `GalleryDlApi__TimeoutMinutes` | `10` |
+| `GalleryDlApi:TimeoutSeconds` | `GalleryDlApi__TimeoutSeconds` | `60` |
 | `GalleryDlApi:AllowedPathPrefixes` | `GalleryDlApi__AllowedPathPrefixes__0`, ... | `/downloads`, `/tmp` |
 
 ## Running

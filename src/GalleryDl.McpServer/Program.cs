@@ -29,7 +29,7 @@ builder.Services.AddHttpClient<GalleryDlApiClient>((serviceProvider, client) =>
     var options = serviceProvider.GetRequiredService<IOptions<GalleryDlApiOptions>>().Value;
     var baseUrl = options.BaseUrl.EndsWith('/') ? options.BaseUrl : options.BaseUrl + '/';
     client.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
-    client.Timeout = TimeSpan.FromMinutes(options.TimeoutMinutes);
+    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
 });
 
 // Add the MCP services: the transport to use (stdio) and the tools to register.

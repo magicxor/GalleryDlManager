@@ -9,8 +9,8 @@ public sealed class GalleryDlApiOptions
     [Required, Url]
     public string BaseUrl { get; set; } = "http://gallerydl-webapi:8080";
 
-    [Range(1, 120)]
-    public int TimeoutMinutes { get; set; } = 10;
+    [Range(5, 7200)]
+    public int TimeoutSeconds { get; set; } = 60;
 
     /// <summary>Absolute directory prefixes the download_gallery tool is allowed to write under.</summary>
     [MinLength(1)]
