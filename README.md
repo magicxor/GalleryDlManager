@@ -18,7 +18,7 @@ AI agent ──(MCP/stdio)──> GalleryDl.McpServer ──(HTTP, compose netwo
 
 ## Prebuilt artifacts
 
-Every version tag (`v*`) publishes:
+Every semver tag (`1.2.3`, no `v` prefix) publishes:
 
 - A multi-arch (amd64/arm64) WebApi image on GHCR:
   `ghcr.io/magicxor/gallerydl-webapi:<version>` (plus `latest`).
