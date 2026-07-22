@@ -44,4 +44,12 @@ public sealed class ResourceOptions
     /// resource cannot sort by rating and its default ordering is used.
     /// </summary>
     public string? RatingSortUrlTemplate { get; set; }
+
+    /// <summary>
+    /// Separator this site uses to combine multiple tags. Callers always pass tags as a
+    /// space-separated string; the API re-joins them with this separator before building the URL.
+    /// Defaults to a single space (the booru / moebooru / shimmie convention); the furry34-family
+    /// sites (furry34, rule34vault, yiffverse) need "|".
+    /// </summary>
+    public string TagSeparator { get; set; } = " ";
 }

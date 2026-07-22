@@ -71,7 +71,7 @@ Files appear on the host under `./downloads/dragons/` (the `/downloads` prefix i
 
 | Setting | Meaning | Default |
 | --- | --- | --- |
-| `Resources` | Map of resource id → `UrlTemplate` with a `{query}` placeholder, plus an optional `RatingSortUrlTemplate` (see below) | 47 preconfigured sites (12 more commented out as too slow for the 40s timeout) |
+| `Resources` | Map of resource id → `UrlTemplate` with a `{query}` placeholder, plus optional `RatingSortUrlTemplate` and `TagSeparator` (see below) | 47 preconfigured sites (12 more commented out as too slow for the 40s timeout) |
 | `AllowedExtensions` | Passed to gallery-dl as a `--filter` extension check | jpg, jpeg, png, gif, webp |
 | `BlacklistTags` | Passed as `--tags-blacklist` (requires gallery-dl ≥ 1.32) | ai-generated, ... |
 | `MaxTake` | Upper bound for the `take` query parameter | 50 |
@@ -87,6 +87,12 @@ variant of `UrlTemplate` with the site-specific sort syntax baked in (e.g.
 `...&tags={query}+sort:score:desc` on gelbooru-based sites, `...+order:score` on moebooru ones).
 When a resource has one it is always used; resources without it fall back to the site's default
 ordering.
+
+Multiple tags are always passed to the API space-separated (e.g. `query=cat_ears red_coat female`),
+with underscores inside multi-word tags. The API re-joins them with each resource's `TagSeparator`
+before building the URL — a space for the booru/moebooru/shimmie family (the default) and `|` for the
+furry34-family sites (furry34, rule34vault, yiffverse). Callers never need to know the per-site
+convention.
 
 `skip`/`take` map to gallery-dl's 1-based inclusive `--range` as `(skip+1)-(skip+take)`. The API
 kills gallery-dl as soon as `take` files are downloaded (on album-style sites `--range` applies per

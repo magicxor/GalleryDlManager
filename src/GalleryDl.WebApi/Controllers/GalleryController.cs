@@ -49,7 +49,11 @@ public sealed class GalleryController(
         // into the search URL, which only some sites accept.
         var urlTemplate = resourceOptions.RatingSortUrlTemplate ?? resourceOptions.UrlTemplate;
 
-        var url = urlTemplate.Replace("{query}", Uri.EscapeDataString(query.Trim()));
+        // Callers always pass tags space-separated (e.g. "cat_ears red_coat female"); re-join them
+        // with the separator this site expects, then URL-encode the whole thing.
+        var tags = query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        var normalizedQuery = string.Join(resourceOptions.TagSeparator, tags);
+        var url = urlTemplate.Replace("{query}", Uri.EscapeDataString(normalizedQuery));
 
         GalleryDlResult result;
         try

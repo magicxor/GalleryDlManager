@@ -18,7 +18,7 @@ internal sealed class GalleryTools(
     [Description("Downloads media files matching a query from a supported gallery resource and saves them into a directory. Results are automatically sorted by rating (highest first) on sites that support it. Existing files are never overwritten. Returns the saved file paths.")]
     public async Task<string> DownloadGallery(
         [Description("Resource id, e.g. 'furry34.com'. Use list_resources to see valid values.")] string resource,
-        [Description("Search query / tag, e.g. 'dragon'.")] string query,
+        [Description("Tags to search for, separated by spaces; multi-word tags use underscores. All tags must match (AND). E.g. \"dragon\" or \"cat_ears red_coat female\". The server adapts the separator to each site automatically.")] string query,
         [Description("Absolute directory path to save the files into (must be under an allowed prefix, e.g. /downloads/my-dir).")] string path,
         [Description("Number of leading gallery items to skip. Optional, defaults to 0.")] int skip = 0,
         [Description("Number of files to download. Optional, defaults to 1 (a configured server-side maximum also applies).")] int take = 1,

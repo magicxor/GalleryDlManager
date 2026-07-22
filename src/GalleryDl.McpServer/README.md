@@ -8,6 +8,9 @@ the downloaded files as a multipart response, and saves them to a local director
 
 - **`download_gallery`** `(resource, query, path, skip = 0, take = 1)` — downloads media files
   matching `query` from `resource` and saves them into the absolute directory `path`.
+  - `query` is a space-separated list of tags, with underscores inside multi-word tags (all must
+    match, AND), e.g. `"dragon"` or `"cat_ears red_coat female"`. The WebApi adapts the separator to
+    each site automatically, so callers always use spaces.
   - `path` must be absolute, must not contain `.`/`..` segments, and must be located under one of
     the configured `AllowedPathPrefixes`.
   - Existing files are never overwritten: if any incoming file already exists in `path`, the whole
