@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="GalleryDl.McpServer/GalleryDl.McpServer.csproj" Id="2cb0dee9-b57d-4d4e-8568-c2a117311eb3" />
+  <Project Path="GalleryDl.WebApi/GalleryDl.WebApi.csproj" />
+</Solution>
