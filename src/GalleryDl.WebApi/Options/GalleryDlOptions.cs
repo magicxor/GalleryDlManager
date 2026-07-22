@@ -39,8 +39,9 @@ public sealed class ResourceOptions
     /// <summary>
     /// Optional variant of <see cref="UrlTemplate"/> with the site-specific "sort by score, highest
     /// first" syntax baked in (e.g. "...&amp;tags={query}+sort:score:desc"). gallery-dl itself cannot
-    /// reorder results, so rating sorting only works where the site accepts it in the search query;
-    /// null means the resource cannot sort by rating.
+    /// reorder results, so rating sorting only works where the site accepts it in the search query.
+    /// When set, it is always used in preference to <see cref="UrlTemplate"/>; null means the
+    /// resource cannot sort by rating and its default ordering is used.
     /// </summary>
     public string? RatingSortUrlTemplate { get; set; }
 }

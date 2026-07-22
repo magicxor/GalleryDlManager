@@ -6,13 +6,11 @@ namespace GalleryDl.McpServer.Services;
 
 public sealed record DownloadOutcome(bool Success, IReadOnlyList<string> SavedFiles, string? Error);
 
-public sealed record ResourceInfo(string Name, bool SupportsRatingSort);
-
 /// <summary>Typed HttpClient for the GalleryDl.WebApi service.</summary>
 public sealed class GalleryDlApiClient(HttpClient http)
 {
-    public async Task<ResourceInfo[]> ListResourcesAsync(CancellationToken ct) =>
-        await http.GetFromJsonAsync<ResourceInfo[]>("api/resources", ct) ?? [];
+    public async Task<string[]> ListResourcesAsync(CancellationToken ct) =>
+        await http.GetFromJsonAsync<string[]>("api/resources", ct) ?? [];
 
     /// <summary>
     /// Downloads files via the WebApi and saves them into <paramref name="targetDir"/>.
@@ -20,11 +18,9 @@ public sealed class GalleryDlApiClient(HttpClient http)
     /// exists the whole operation fails without writing anything.
     /// </summary>
     public async Task<DownloadOutcome> DownloadAsync(
-        string resource, string query, int skip, int take, bool sortByRating, string targetDir, CancellationToken ct)
+        string resource, string query, int skip, int take, string targetDir, CancellationToken ct)
     {
         var uri = $"api/download?resource={Uri.EscapeDataString(resource)}&query={Uri.EscapeDataString(query)}&skip={skip}&take={take}";
-        if (sortByRating)
-            uri += "&sort=rating";
         using var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
 
         if (!response.IsSuccessStatusCode)

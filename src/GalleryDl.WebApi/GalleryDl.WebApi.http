@@ -9,6 +9,7 @@ GET {{GalleryDl.WebApi_HostAddress}}/api/download?resource=furry34.com&query=dra
 
 ###
 
-GET {{GalleryDl.WebApi_HostAddress}}/api/download?resource=safebooru.org&query=cat&take=3&sort=rating
+# safebooru.org sorts by rating automatically (highest first).
+GET {{GalleryDl.WebApi_HostAddress}}/api/download?resource=safebooru.org&query=cat&take=3
 
 ###

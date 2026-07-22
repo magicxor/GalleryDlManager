@@ -15,14 +15,13 @@ internal sealed class GalleryTools(
     ILogger<GalleryTools> logger)
 {
     [McpServerTool(Name = "download_gallery")]
-    [Description("Downloads media files matching a query from a supported gallery resource and saves them into a directory. Existing files are never overwritten. Returns the saved file paths.")]
+    [Description("Downloads media files matching a query from a supported gallery resource and saves them into a directory. Results are automatically sorted by rating (highest first) on sites that support it. Existing files are never overwritten. Returns the saved file paths.")]
     public async Task<string> DownloadGallery(
         [Description("Resource id, e.g. 'furry34.com'. Use list_resources to see valid values.")] string resource,
         [Description("Search query / tag, e.g. 'dragon'.")] string query,
         [Description("Absolute directory path to save the files into (must be under an allowed prefix, e.g. /downloads/my-dir).")] string path,
         [Description("Number of leading gallery items to skip.")] int skip = 0,
         [Description("Number of files to download (a configured server-side maximum applies).")] int take = 5,
-        [Description("Sort results by rating/score, highest first, instead of the site's default order (usually newest first). Only resources marked accordingly by list_resources support this.")] bool sortByRating = false,
         CancellationToken cancellationToken = default)
     {
         try
@@ -37,7 +36,7 @@ internal sealed class GalleryTools(
             if (pathPolicy.Validate(path) is { } pathError)
                 return $"Error: {pathError}";
 
-            var outcome = await api.DownloadAsync(resource, query, skip, take, sortByRating, path, cancellationToken);
+            var outcome = await api.DownloadAsync(resource, query, skip, take, path, cancellationToken);
             if (!outcome.Success)
                 return $"Download failed: {outcome.Error}";
 
@@ -57,15 +56,13 @@ internal sealed class GalleryTools(
     }
 
     [McpServerTool(Name = "list_resources")]
-    [Description("Lists the gallery resources available for download_gallery. Resources that can sort results by rating are marked with '(supports sortByRating)'.")]
+    [Description("Lists the gallery resources available for download_gallery.")]
     public async Task<string> ListResources(CancellationToken cancellationToken = default)
     {
         try
         {
             var resources = await api.ListResourcesAsync(cancellationToken);
-            return resources.Length == 0
-                ? "No resources are configured."
-                : string.Join('\n', resources.Select(r => r.SupportsRatingSort ? $"{r.Name} (supports sortByRating)" : r.Name));
+            return resources.Length == 0 ? "No resources are configured." : string.Join('\n', resources);
         }
         catch (OperationCanceledException)
         {

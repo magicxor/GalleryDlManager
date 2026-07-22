@@ -6,18 +6,15 @@ the downloaded files as a multipart response, and saves them to a local director
 
 ## Tools
 
-- **`download_gallery`** `(resource, query, path, skip = 0, take = 5, sortByRating = false)` —
-  downloads media files matching `query` from `resource` and saves them into the absolute
-  directory `path`.
+- **`download_gallery`** `(resource, query, path, skip = 0, take = 5)` — downloads media files
+  matching `query` from `resource` and saves them into the absolute directory `path`.
   - `path` must be absolute, must not contain `.`/`..` segments, and must be located under one of
     the configured `AllowedPathPrefixes`.
   - Existing files are never overwritten: if any incoming file already exists in `path`, the whole
     operation fails and nothing is written.
-  - `sortByRating = true` orders results by score, highest first. Only resources that expose a
-    rating sort in their search syntax support it (marked by `list_resources`); others fail with
-    a clear error.
-- **`list_resources`** `()` — lists the resource ids accepted by `download_gallery`, marking those
-  that support `sortByRating`.
+  - Results are ordered by rating (score, highest first) automatically on sites whose search
+    syntax supports it; other sites use their default ordering.
+- **`list_resources`** `()` — lists the resource ids accepted by `download_gallery`.
 
 ## Configuration
 
