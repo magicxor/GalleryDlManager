@@ -1,0 +1,64 @@
+using System.ComponentModel;
+using GalleryDl.McpServer.Services;
+using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Server;
+
+namespace GalleryDl.McpServer.Tools;
+
+[McpServerToolType]
+internal sealed class GalleryTools(GalleryDlApiClient api, PathPolicy pathPolicy, ILogger<GalleryTools> logger)
+{
+    [McpServerTool(Name = "download_gallery")]
+    [Description("Downloads media files matching a query from a supported gallery resource and saves them into a directory. Existing files are never overwritten. Returns the saved file paths.")]
+    public async Task<string> DownloadGallery(
+        [Description("Resource id, e.g. 'furry34.com'. Use list_resources to see valid values.")] string resource,
+        [Description("Search query / tag, e.g. 'dragon'.")] string query,
+        [Description("Absolute directory path to save the files into (must be under an allowed prefix, e.g. /downloads/my-dir).")] string path,
+        [Description("Number of leading gallery items to skip.")] int skip = 0,
+        [Description("Maximum number of files to download.")] int take = 5,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (pathPolicy.Validate(path) is { } pathError)
+                return $"Error: {pathError}";
+
+            var outcome = await api.DownloadAsync(resource, query, skip, take, path, cancellationToken);
+            if (!outcome.Success)
+                return $"Download failed: {outcome.Error}";
+
+            return outcome.SavedFiles.Count == 0
+                ? "Download finished, but the API returned no files."
+                : $"Saved {outcome.SavedFiles.Count} file(s):\n{string.Join('\n', outcome.SavedFiles)}";
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "download_gallery failed");
+            return $"Error: {ex.Message}";
+        }
+    }
+
+    [McpServerTool(Name = "list_resources")]
+    [Description("Lists the gallery resources available for download_gallery.")]
+    public async Task<string> ListResources(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var resources = await api.ListResourcesAsync(cancellationToken);
+            return resources.Length == 0 ? "No resources are configured." : string.Join('\n', resources);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "list_resources failed");
+            return $"Error: {ex.Message}";
+        }
+    }
+}

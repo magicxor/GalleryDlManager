@@ -1,3 +1,6 @@
+using GalleryDl.WebApi.Options;
+using GalleryDl.WebApi.Services;
+using Microsoft.AspNetCore.StaticFiles;
 
 namespace GalleryDl.WebApi
 {
@@ -7,11 +10,16 @@ namespace GalleryDl.WebApi
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+
+            builder.Services.AddOptions<GalleryDlOptions>()
+                .BindConfiguration(GalleryDlOptions.SectionName)
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+            builder.Services.AddSingleton<GalleryDlRunner>();
+            builder.Services.AddSingleton<FileExtensionContentTypeProvider>();
 
             var app = builder.Build();
 
@@ -20,9 +28,6 @@ namespace GalleryDl.WebApi
             {
                 app.MapOpenApi();
             }
-
-            app.UseAuthorization();
-
 
             app.MapControllers();
 

@@ -2,6 +2,15 @@
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+
+# Install Python + gallery-dl (>= 1.32 is required for --tags-blacklist).
+# The image is Ubuntu 24.04, whose Python is PEP 668 "externally managed", hence --break-system-packages.
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 python3-pip \
+ && pip3 install --no-cache-dir --break-system-packages "gallery-dl>=1.32,<2" \
+ && rm -rf /var/lib/apt/lists/*
+
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8080

@@ -13,10 +13,10 @@
 
     <!-- Set recommended package metadata -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageId>SampleMcpServer</PackageId>
-    <PackageVersion>0.1.0-beta</PackageVersion>
-    <PackageTags>AI; MCP; server; stdio</PackageTags>
-    <Description>An MCP server using the MCP C# SDK.</Description>
+    <PackageId>GalleryDl.McpServer</PackageId>
+    <PackageVersion>0.1.0</PackageVersion>
+    <PackageTags>AI; MCP; server; stdio; gallery-dl</PackageTags>
+    <Description>MCP server exposing gallery download tools backed by the GalleryDl.WebApi service.</Description>
   </PropertyGroup>
 
   <!-- Include additional files for browsing the MCP server. -->
@@ -26,7 +26,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="10.0.10" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.10" />
     <PackageReference Include="ModelContextProtocol" Version="1.4.1" />
   </ItemGroup>
 

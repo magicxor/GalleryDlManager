@@ -1,1 +1,96 @@
 # GalleryDlManager
+
+A two-container toolchain that lets an AI agent download media galleries via MCP:
+
+- **GalleryDl.WebApi** — ASP.NET Core API in a container with Python and
+  [gallery-dl](https://github.com/mikf/gallery-dl). On request it runs gallery-dl (via
+  [CliWrap](https://github.com/Tyrrrz/CliWrap)) in a per-request temp directory, streams the
+  downloaded files back as a `multipart/form-data` response, and deletes the temp directory.
+- **GalleryDl.McpServer** — stdio MCP server in a second container. Exposes the
+  `download_gallery` and `list_resources` tools, forwards requests to the WebApi over the compose
+  network, and saves the returned files to a directory chosen by the agent.
+
+```
+AI agent ──(MCP/stdio)──> GalleryDl.McpServer ──(HTTP, compose network)──> GalleryDl.WebApi ──> gallery-dl
+                                   │                                              │
+                                   └── saves files to /downloads (bind mount) <── multipart response
+```
+
+## Quick start
+
+```bash
+# 1. Build both images
+docker compose --profile mcp build
+
+# 2. Start the WebApi (the MCP server is launched on demand by the MCP client)
+docker compose up -d gallerydl-webapi
+```
+
+Register the MCP server in your client (e.g. `.mcp.json` for Claude Code, `mcp.json` for VS Code):
+
+```json
+{
+  "mcpServers": {
+    "gallerydl": {
+      "command": "docker",
+      "args": [
+        "compose", "-f", "C:/git/personal/GalleryDlManager/docker-compose.yml",
+        "run", "--rm", "-T", "gallerydl-mcpserver"
+      ]
+    }
+  }
+}
+```
+
+`-T` disables TTY allocation so stdout stays clean for MCP JSON-RPC. `docker compose run`
+automatically starts the `gallerydl-webapi` dependency if it is not running.
+
+Then ask the agent, for example:
+
+> Download 3 images tagged "dragon" from furry34.com, skipping the first 2, into /downloads/dragons
+
+Files appear on the host under `./downloads/dragons/` (the `/downloads` prefix is bind-mounted).
+
+## Configuration
+
+### WebApi (`src/GalleryDl.WebApi/appsettings.json`, section `GalleryDl`)
+
+| Setting | Meaning | Default |
+| --- | --- | --- |
+| `Resources` | Map of resource id → `UrlTemplate` with a `{query}` placeholder | `furry34.com` |
+| `AllowedExtensions` | Passed to gallery-dl as a `--filter` extension check | jpg, jpeg, png, gif, webp |
+| `BlacklistTags` | Passed as `--tags-blacklist` (requires gallery-dl ≥ 1.32) | ai-generated, ... |
+| `MaxTake` | Upper bound for the `take` query parameter | 20 |
+| `TimeoutSeconds` | gallery-dl execution timeout | 300 |
+| `ExtraArgs` | Extra CLI args appended verbatim | `[]` |
+
+Endpoints: `GET /api/resources`, `GET /api/download?resource=&query=&skip=&take=`
+(multipart/form-data on success; RFC 7807 problem JSON with 400/404/502/504 on errors).
+
+`skip`/`take` map to gallery-dl's 1-based inclusive `--range` as `(skip+1)-(skip+take)`.
+
+### McpServer (`src/GalleryDl.McpServer/appsettings.json`, section `GalleryDlApi`)
+
+| Setting | Meaning | Default |
+| --- | --- | --- |
+| `BaseUrl` | WebApi address | `http://gallerydl-webapi:8080` |
+| `TimeoutMinutes` | HTTP timeout towards the WebApi | 10 |
+| `AllowedPathPrefixes` | Directories `download_gallery` may write under | `/downloads`, `/tmp` |
+
+Path rules for `download_gallery`: the path must be absolute, must not contain `.`/`..` segments,
+and must be under an allowed prefix. Existing files are never overwritten (the operation fails
+atomically); writing into an existing non-empty directory is fine. Note that only `/downloads` is
+bind-mounted to the host — files saved under `/tmp` stay inside the container.
+
+On Linux hosts, make sure `./downloads` is writable by the container user (the image runs as a
+non-root user): `chmod 777 downloads` or adjust ownership.
+
+## Development
+
+```bash
+dotnet build src/GalleryDlManager.slnx
+```
+
+Run the WebApi locally (requires gallery-dl on PATH): `dotnet run --project src/GalleryDl.WebApi`,
+then use `src/GalleryDl.WebApi/GalleryDl.WebApi.http` for smoke requests.
+See `src/GalleryDl.McpServer/README.md` for running the MCP server against a local WebApi.

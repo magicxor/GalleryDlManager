@@ -1,6 +1,10 @@
 @GalleryDl.WebApi_HostAddress = http://localhost:5118
 
-GET {{GalleryDl.WebApi_HostAddress}}/weatherforecast/
+GET {{GalleryDl.WebApi_HostAddress}}/api/resources
 Accept: application/json
+
+###
+
+GET {{GalleryDl.WebApi_HostAddress}}/api/download?resource=furry34.com&query=dragon&skip=2&take=3
 
 ###

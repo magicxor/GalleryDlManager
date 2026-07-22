@@ -1,92 +1,51 @@
-# MCP Server
+# GalleryDl.McpServer
 
-This README was created using the C# MCP server project template.
-It demonstrates how you can easily create an MCP server using C# and publish it as a NuGet package.
+A stdio MCP server that lets an AI agent download media galleries. It forwards requests to the
+`GalleryDl.WebApi` service (which runs [gallery-dl](https://github.com/mikf/gallery-dl)), receives
+the downloaded files as a multipart response, and saves them to a local directory.
 
-The MCP server is built as a framework-dependent application and requires the .NET runtime to be installed on the target machine.
-The application is configured to roll-forward to the next highest major version of the runtime if one is available on the target machine.
-If an applicable .NET runtime is not available, the MCP server will not start.
-Consider building the MCP server as a self-contained application if you want to avoid this dependency.
+## Tools
 
-See [aka.ms/nuget/mcp/guide](https://aka.ms/nuget/mcp/guide) for the full guide.
+- **`download_gallery`** `(resource, query, path, skip = 0, take = 5)` — downloads media files
+  matching `query` from `resource` and saves them into the absolute directory `path`.
+  - `path` must be absolute, must not contain `.`/`..` segments, and must be located under one of
+    the configured `AllowedPathPrefixes`.
+  - Existing files are never overwritten: if any incoming file already exists in `path`, the whole
+    operation fails and nothing is written.
+- **`list_resources`** `()` — lists the resource ids accepted by `download_gallery`.
 
-Please note that this template is currently in an early preview stage. If you have feedback, please take a [brief survey](http://aka.ms/dotnet-mcp-template-survey).
+## Configuration
 
-## Checklist before publishing to NuGet.org
+`appsettings.json` (overridable via environment variables):
 
-- Test the MCP server locally using the steps below.
-- Update the package metadata in the .csproj file, in particular the `<PackageId>`.
-- Update `.mcp/server.json` to declare your MCP server's inputs.
-  - See [configuring inputs](https://aka.ms/nuget/mcp/guide/configuring-inputs) for more details.
-- Pack the project using `dotnet pack`.
+| Setting | Env var | Default |
+| --- | --- | --- |
+| `GalleryDlApi:BaseUrl` | `GalleryDlApi__BaseUrl` | `http://gallerydl-webapi:8080` |
+| `GalleryDlApi:TimeoutMinutes` | `GalleryDlApi__TimeoutMinutes` | `10` |
+| `GalleryDlApi:AllowedPathPrefixes` | `GalleryDlApi__AllowedPathPrefixes__0`, ... | `/downloads`, `/tmp` |
 
-The `bin/Release` directory will contain the package file (.nupkg), which can be [published to NuGet.org](https://learn.microsoft.com/nuget/nuget-org/publish-a-package).
+## Running
 
-## Developing locally
+The intended way to run this server is via docker compose from the repository root — see the root
+`README.md`. An MCP client launches it with:
 
-To test this MCP server from source code (locally) without using a built MCP server package, you can configure your IDE to run the project directly using `dotnet run`.
+```
+docker compose -f <repo>/docker-compose.yml run --rm -T gallerydl-mcpserver
+```
+
+For local development against a locally running WebApi:
 
 ```json
 {
   "servers": {
-    "GalleryDl.McpServer": {
+    "gallerydl": {
       "type": "stdio",
       "command": "dotnet",
-      "args": [
-        "run",
-        "--project",
-        "<PATH TO PROJECT DIRECTORY>"
-      ]
+      "args": [ "run", "--project", "<PATH TO>/src/GalleryDl.McpServer" ],
+      "env": { "GalleryDlApi__BaseUrl": "http://localhost:5118" }
     }
   }
 }
 ```
 
-Refer to the VS Code or Visual Studio documentation for more information on configuring and using MCP servers:
-
-- [Use MCP servers in VS Code (Preview)](https://code.visualstudio.com/docs/copilot/chat/mcp-servers)
-- [Use MCP servers in Visual Studio (Preview)](https://learn.microsoft.com/visualstudio/ide/mcp-servers)
-
-## Testing the MCP Server
-
-Once configured, you can ask Copilot Chat for a random number, for example, `Give me 3 random numbers`. It should prompt you to use the `get_random_number` tool on the `GalleryDl.McpServer` MCP server and show you the results.
-
-## Publishing to NuGet.org
-
-1. Run `dotnet pack -c Release` to create the NuGet package
-2. Publish to NuGet.org with `dotnet nuget push bin/Release/*.nupkg --api-key <your-api-key> --source https://api.nuget.org/v3/index.json`
-
-## Using the MCP Server from NuGet.org
-
-Once the MCP server package is published to NuGet.org, you can configure it in your preferred IDE. Both VS Code and Visual Studio use the `dnx` command to download and install the MCP server package from NuGet.org.
-
-- **VS Code**: Create a `<WORKSPACE DIRECTORY>/.vscode/mcp.json` file
-- **Visual Studio**: Create a `<SOLUTION DIRECTORY>\.mcp.json` file
-
-For both VS Code and Visual Studio, the configuration file uses the following server definition:
-
-```json
-{
-  "servers": {
-    "GalleryDl.McpServer": {
-      "type": "stdio",
-      "command": "dnx",
-      "args": [
-        "<your package ID here>",
-        "--version",
-        "<your package version here>",
-        "--yes"
-      ]
-    }
-  }
-}
-```
-
-## More information
-
-.NET MCP servers use the [ModelContextProtocol](https://www.nuget.org/packages/ModelContextProtocol) C# SDK. For more information about MCP:
-
-- [Official Documentation](https://modelcontextprotocol.io/)
-- [Protocol Specification](https://spec.modelcontextprotocol.io/)
-- [GitHub Organization](https://github.com/modelcontextprotocol)
-- [MCP C# SDK](https://modelcontextprotocol.github.io/csharp-sdk)
+All logs go to stderr; stdout is reserved for the MCP JSON-RPC protocol.

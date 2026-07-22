@@ -1,22 +1,29 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
-  "description": "<your description here>",
-  "name": "io.github.<your GitHub username here>/<your repo name>",
-  "version": "0.1.0-beta",
+  "description": "MCP server exposing gallery download tools (gallery-dl) backed by the GalleryDl.WebApi service.",
+  "name": "io.github.magicxor/GalleryDlManager",
+  "version": "0.1.0",
   "packages": [
     {
       "registryType": "nuget",
-      "identifier": "<your package ID here>",
-      "version": "0.1.0-beta",
+      "identifier": "GalleryDl.McpServer",
+      "version": "0.1.0",
       "transport": {
         "type": "stdio"
       },
       "packageArguments": [],
-      "environmentVariables": []
+      "environmentVariables": [
+        {
+          "name": "GalleryDlApi__BaseUrl",
+          "description": "Base URL of the GalleryDl.WebApi service, e.g. http://gallerydl-webapi:8080",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
     }
   ],
   "repository": {
-    "url": "https://github.com/<your GitHub username here>/<your repo name>",
+    "url": "https://github.com/magicxor/GalleryDlManager",
     "source": "github"
   }
 }

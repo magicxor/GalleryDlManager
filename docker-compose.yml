@@ -1,0 +1,35 @@
+services:
+  gallerydl-webapi:
+    build:
+      context: ./src
+      dockerfile: GalleryDl.WebApi/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    networks:
+      - gallerydl-net
+    # No published ports: the API is only reachable from the compose network.
+    # Uncomment for debugging from the host:
+    # ports:
+    #   - "8080:8080"
+
+  # Stdio MCP server. Not started by plain `docker compose up` (see the "mcp" profile);
+  # an MCP client launches it with: docker compose run --rm -T gallerydl-mcpserver
+  gallerydl-mcpserver:
+    build:
+      context: ./src
+      dockerfile: GalleryDl.McpServer/Dockerfile
+    profiles:
+      - mcp
+    stdin_open: true
+    environment:
+      - GalleryDlApi__BaseUrl=http://gallerydl-webapi:8080
+    volumes:
+      - ./downloads:/downloads
+    depends_on:
+      - gallerydl-webapi
+    networks:
+      - gallerydl-net
+
+networks:
+  gallerydl-net:
+    driver: bridge
