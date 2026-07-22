@@ -5,11 +5,16 @@ using Microsoft.Extensions.Options;
 
 namespace GalleryDl.WebApi.Services;
 
-public sealed record GalleryDlResult(int ExitCode, IReadOnlyList<string> Files, string WorkDir, string StdErrExcerpt);
+public sealed record GalleryDlResult(
+    int ExitCode,
+    IReadOnlyList<string> Files,
+    string WorkDir,
+    string StdErrExcerpt,
+    bool TimedOut = false);
 
-/// <summary>Thrown when gallery-dl exceeds the configured timeout (as opposed to the client aborting).</summary>
+/// <summary>Thrown when gallery-dl exceeds the configured timeout without downloading a single file.</summary>
 public sealed class GalleryDlTimeoutException(int timeoutSeconds)
-    : Exception($"gallery-dl did not finish within {timeoutSeconds} seconds.");
+    : Exception($"gallery-dl did not download any files within {timeoutSeconds} seconds.");
 
 public sealed class GalleryDlRunner(IOptions<GalleryDlOptions> options, ILogger<GalleryDlRunner> logger)
 {
@@ -17,8 +22,13 @@ public sealed class GalleryDlRunner(IOptions<GalleryDlOptions> options, ILogger<
 
     /// <summary>
     /// Runs gallery-dl for <paramref name="url"/> in a freshly created work directory and returns the
-    /// downloaded file paths. The caller owns the work directory and must delete it after use;
-    /// it is only cleaned up here when the run throws.
+    /// downloaded file paths. The process is killed as soon as <paramref name="take"/> files are done:
+    /// on "queue"-style extractors (search results that expand into albums) --range applies per album,
+    /// so left alone gallery-dl would keep pulling one file from every album in the listing. On timeout
+    /// the files downloaded so far are returned as a partial result (TimedOut = true); the timeout is
+    /// only an error when nothing was downloaded at all.
+    /// The caller owns the work directory and must delete it after use; it is only cleaned up here
+    /// when the run throws.
     /// </summary>
     public async Task<GalleryDlResult> DownloadAsync(string url, int skip, int take, CancellationToken ct)
     {
@@ -45,27 +55,71 @@ public sealed class GalleryDlRunner(IOptions<GalleryDlOptions> options, ILogger<
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(o.TimeoutSeconds));
+        using var runCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token);
 
-        var stdOut = new StringBuilder();
+        var sync = new object();
+        var fileLines = new List<string>();
+        var earlyStopped = false;
+
+        void OnStdOutLine(string line)
+        {
+            line = line.Trim();
+            // output.mode=pipe: one path per downloaded file; skipped files are prefixed with "# ".
+            if (line.Length == 0 || line.StartsWith("# "))
+                return;
+
+            lock (sync)
+            {
+                fileLines.Add(line);
+                if (fileLines.Count >= take && !earlyStopped)
+                {
+                    // We have everything the caller asked for - stop gallery-dl instead of letting
+                    // it walk the rest of the listing.
+                    earlyStopped = true;
+                    runCts.Cancel();
+                }
+            }
+        }
+
         var stdErr = new StringBuilder();
-
         logger.LogInformation("Running {Executable} for {Url} in {WorkDir}", o.ExecutablePath, url, workDir);
 
-        CommandResult result;
+        var exitCode = 0;
+        var timedOut = false;
         try
         {
-            result = await Cli.Wrap(o.ExecutablePath)
+            var result = await Cli.Wrap(o.ExecutablePath)
                 .WithArguments(args)
                 .WithWorkingDirectory(workDir)
                 .WithValidation(CommandResultValidation.None)
-                .WithStandardOutputPipe(PipeTarget.ToStringBuilder(stdOut))
+                .WithStandardOutputPipe(PipeTarget.ToDelegate(OnStdOutLine))
                 .WithStandardErrorPipe(PipeTarget.ToStringBuilder(stdErr))
-                .ExecuteAsync(timeoutCts.Token);
+                .ExecuteAsync(runCts.Token);
+            exitCode = result.ExitCode;
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        catch (OperationCanceledException)
         {
-            TryDeleteWorkDir(workDir);
-            throw new GalleryDlTimeoutException(o.TimeoutSeconds);
+            if (ct.IsCancellationRequested)
+            {
+                TryDeleteWorkDir(workDir);
+                throw;
+            }
+
+            bool wasEarlyStop;
+            lock (sync)
+            {
+                wasEarlyStop = earlyStopped;
+            }
+
+            if (!wasEarlyStop)
+            {
+                timedOut = true;
+                if (CollectFiles().Count == 0)
+                {
+                    TryDeleteWorkDir(workDir);
+                    throw new GalleryDlTimeoutException(o.TimeoutSeconds);
+                }
+            }
         }
         catch
         {
@@ -73,27 +127,37 @@ public sealed class GalleryDlRunner(IOptions<GalleryDlOptions> options, ILogger<
             throw;
         }
 
-        // stdout (output.mode=pipe): one path per downloaded file; skipped files are prefixed with "# ".
-        var files = stdOut.ToString()
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(line => !line.StartsWith("# "))
-            .Select(line => Path.GetFullPath(line, workDir))
-            .Where(path => path.StartsWith(workDir + Path.DirectorySeparatorChar, StringComparison.Ordinal)
-                           && File.Exists(path))
-            .Distinct()
-            .ToList();
+        var files = CollectFiles();
 
-        // Safety net for extractors with unusual output: trust what is actually on disk.
-        if (files.Count == 0)
-            files = Directory.EnumerateFiles(workDir, "*", SearchOption.AllDirectories).ToList();
+        // Safety net for extractors with unusual output, only on a clean run: trust the disk.
+        if (files.Count == 0 && exitCode == 0 && !timedOut)
+            files = Directory.EnumerateFiles(workDir, "*", SearchOption.AllDirectories).Take(take).ToList();
 
         var err = stdErr.ToString();
         if (err.Length > MaxStdErrExcerptLength)
             err = err[^MaxStdErrExcerptLength..];
 
-        logger.LogInformation("gallery-dl exited with {ExitCode}; {FileCount} file(s) downloaded", result.ExitCode, files.Count);
+        logger.LogInformation("gallery-dl finished (exit {ExitCode}, timed out: {TimedOut}); {FileCount} file(s) downloaded",
+            exitCode, timedOut, files.Count);
 
-        return new GalleryDlResult(result.ExitCode, files, workDir, err);
+        return new GalleryDlResult(exitCode, files, workDir, err, timedOut);
+
+        List<string> CollectFiles()
+        {
+            List<string> snapshot;
+            lock (sync)
+            {
+                snapshot = [.. fileLines];
+            }
+
+            return snapshot
+                .Select(line => Path.GetFullPath(line, workDir))
+                .Where(path => path.StartsWith(workDir + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+                               && File.Exists(path))
+                .Distinct()
+                .Take(take)
+                .ToList();
+        }
     }
 
     private void TryDeleteWorkDir(string workDir)

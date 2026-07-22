@@ -68,7 +68,10 @@ public sealed class GalleryController(
                     detail: $"gallery-dl finished successfully but no files matched resource '{resource}', query '{query}', skip {skip}, take {take}.");
             }
 
-            if (result.ExitCode != 0)
+            if (result.TimedOut)
+                logger.LogWarning("gallery-dl was stopped by the {TimeoutSeconds}s timeout after downloading {FileCount} file(s); returning partial result",
+                    o.TimeoutSeconds, result.Files.Count);
+            else if (result.ExitCode != 0)
                 logger.LogWarning("gallery-dl exited with {ExitCode} but {FileCount} file(s) were downloaded; returning partial result. Stderr: {StdErr}",
                     result.ExitCode, result.Files.Count, result.StdErrExcerpt);
 

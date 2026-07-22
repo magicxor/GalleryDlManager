@@ -67,7 +67,11 @@ Files appear on the host under `./downloads/dragons/` (the `/downloads` prefix i
 Endpoints: `GET /api/resources`, `GET /api/download?resource=&query=&skip=&take=`
 (multipart/form-data on success; RFC 7807 problem JSON with 400/404/502/504 on errors).
 
-`skip`/`take` map to gallery-dl's 1-based inclusive `--range` as `(skip+1)-(skip+take)`.
+`skip`/`take` map to gallery-dl's 1-based inclusive `--range` as `(skip+1)-(skip+take)`. The API
+kills gallery-dl as soon as `take` files are downloaded (on album-style sites `--range` applies per
+album, so gallery-dl would otherwise keep pulling files from every album in the listing). On
+timeout the files fetched so far are returned as a partial result — 504 means nothing was
+downloaded in time.
 
 ### McpServer (`src/GalleryDl.McpServer/appsettings.json`, section `GalleryDlApi`)
 
