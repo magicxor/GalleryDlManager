@@ -23,7 +23,7 @@ public sealed class GalleryController(
         [FromQuery] string resource,
         [FromQuery] string query,
         [FromQuery] int skip = 0,
-        [FromQuery] int take = 5,
+        [FromQuery] int take = 1,
         CancellationToken ct = default)
     {
         var o = options.Value;

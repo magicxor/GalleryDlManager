@@ -20,8 +20,8 @@ internal sealed class GalleryTools(
         [Description("Resource id, e.g. 'furry34.com'. Use list_resources to see valid values.")] string resource,
         [Description("Search query / tag, e.g. 'dragon'.")] string query,
         [Description("Absolute directory path to save the files into (must be under an allowed prefix, e.g. /downloads/my-dir).")] string path,
-        [Description("Number of leading gallery items to skip.")] int skip = 0,
-        [Description("Number of files to download (a configured server-side maximum applies).")] int take = 5,
+        [Description("Number of leading gallery items to skip. Optional, defaults to 0.")] int skip = 0,
+        [Description("Number of files to download. Optional, defaults to 1 (a configured server-side maximum also applies).")] int take = 1,
         CancellationToken cancellationToken = default)
     {
         try

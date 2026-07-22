@@ -6,7 +6,7 @@ the downloaded files as a multipart response, and saves them to a local director
 
 ## Tools
 
-- **`download_gallery`** `(resource, query, path, skip = 0, take = 5)` — downloads media files
+- **`download_gallery`** `(resource, query, path, skip = 0, take = 1)` — downloads media files
   matching `query` from `resource` and saves them into the absolute directory `path`.
   - `path` must be absolute, must not contain `.`/`..` segments, and must be located under one of
     the configured `AllowedPathPrefixes`.
