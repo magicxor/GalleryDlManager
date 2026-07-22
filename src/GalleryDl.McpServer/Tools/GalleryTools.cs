@@ -1,12 +1,18 @@
 using System.ComponentModel;
+using GalleryDl.McpServer.Options;
 using GalleryDl.McpServer.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 
 namespace GalleryDl.McpServer.Tools;
 
 [McpServerToolType]
-internal sealed class GalleryTools(GalleryDlApiClient api, PathPolicy pathPolicy, ILogger<GalleryTools> logger)
+internal sealed class GalleryTools(
+    GalleryDlApiClient api,
+    PathPolicy pathPolicy,
+    IOptions<GalleryDlApiOptions> options,
+    ILogger<GalleryTools> logger)
 {
     [McpServerTool(Name = "download_gallery")]
     [Description("Downloads media files matching a query from a supported gallery resource and saves them into a directory. Existing files are never overwritten. Returns the saved file paths.")]
@@ -15,11 +21,18 @@ internal sealed class GalleryTools(GalleryDlApiClient api, PathPolicy pathPolicy
         [Description("Search query / tag, e.g. 'dragon'.")] string query,
         [Description("Absolute directory path to save the files into (must be under an allowed prefix, e.g. /downloads/my-dir).")] string path,
         [Description("Number of leading gallery items to skip.")] int skip = 0,
-        [Description("Maximum number of files to download.")] int take = 5,
+        [Description("Number of files to download (a configured server-side maximum applies).")] int take = 5,
         CancellationToken cancellationToken = default)
     {
         try
         {
+            if (skip < 0)
+                return "Error: 'skip' must be >= 0.";
+
+            var maxTake = options.Value.MaxTake;
+            if (take < 1 || take > maxTake)
+                return $"Error: 'take' must be between 1 and {maxTake}.";
+
             if (pathPolicy.Validate(path) is { } pathError)
                 return $"Error: {pathError}";
 

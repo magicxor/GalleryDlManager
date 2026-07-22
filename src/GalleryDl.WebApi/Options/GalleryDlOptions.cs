@@ -16,7 +16,7 @@ public sealed class GalleryDlOptions
     public int TimeoutSeconds { get; set; } = 40;
 
     [Range(1, 100)]
-    public int MaxTake { get; set; } = 20;
+    public int MaxTake { get; set; } = 50;
 
     [MinLength(1)]
     public List<string> AllowedExtensions { get; set; } = [];

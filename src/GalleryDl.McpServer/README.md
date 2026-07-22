@@ -22,6 +22,7 @@ the downloaded files as a multipart response, and saves them to a local director
 | --- | --- | --- |
 | `GalleryDlApi:BaseUrl` | `GalleryDlApi__BaseUrl` | `http://gallerydl-webapi:8080` |
 | `GalleryDlApi:TimeoutSeconds` | `GalleryDlApi__TimeoutSeconds` | `60` |
+| `GalleryDlApi:MaxTake` | `GalleryDlApi__MaxTake` | `10` |
 | `GalleryDlApi:AllowedPathPrefixes` | `GalleryDlApi__AllowedPathPrefixes__0`, ... | `/downloads`, `/tmp` |
 
 ## Running
