@@ -47,4 +47,16 @@ public sealed class ResourceOptions
     /// sites (furry34, rule34vault, yiffverse) need "|".
     /// </summary>
     public string TagSeparator { get; set; } = " ";
+
+    /// <summary>
+    /// True when this site hosts adult / not-safe-for-work content.
+    /// </summary>
+    public bool IsNsfw { get; set; }
+
+    /// <summary>
+    /// True when the site can order search results by score/rating and the <see cref="UrlTemplate"/>
+    /// above bakes that ordering in (gallery-dl itself cannot reorder results). Resources whose
+    /// template has no sort clause fall back to the site's default ordering.
+    /// </summary>
+    public bool HasSortFeature { get; set; }
 }

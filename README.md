@@ -71,7 +71,7 @@ Files appear on the host under `./downloads/dragons/` (the `/downloads` prefix i
 
 | Setting | Meaning | Default |
 | --- | --- | --- |
-| `Resources` | Map of resource id → `UrlTemplate` with a `{query}` placeholder, plus an optional `TagSeparator` (see below) | 47 preconfigured sites (12 more commented out as too slow for the 40s timeout) |
+| `Resources` | Map of resource id → `UrlTemplate` with a `{query}` placeholder, plus an optional `TagSeparator` (see below) and the `IsNsfw` / `HasSortFeature` flags | 47 preconfigured sites (12 more commented out as too slow for the 40s timeout) |
 | `AllowedExtensions` | Passed to gallery-dl as a `--filter` extension check | jpg, jpeg, png, gif, webp |
 | `BlacklistTags` | Passed as `--tags-blacklist` (requires gallery-dl ≥ 1.32) | ai-generated, ... |
 | `MaxTake` | Upper bound for the `take` query parameter | 50 |
@@ -81,10 +81,11 @@ Files appear on the host under `./downloads/dragons/` (the `/downloads` prefix i
 Endpoints: `GET /api/resources`, `GET /api/download?resource=&query=&skip=&take=`
 (multipart/form-data on success; RFC 7807 problem JSON with 400/404/502/504 on errors).
 
-Results are sorted by score (highest first) on sites that support it. gallery-dl itself cannot
-reorder results, so the sort syntax is baked directly into that resource's `UrlTemplate` (e.g.
-`...&tags={query}+sort:score:desc` on gelbooru-based sites, `...+order:score` on moebooru ones).
-Resources whose template has no sort clause use the site's default ordering.
+Results are sorted by score (highest first) on sites that support it (`HasSortFeature: true`).
+gallery-dl itself cannot reorder results, so the sort syntax is baked directly into that resource's
+`UrlTemplate` (e.g. `...&tags={query}+sort:score:desc` on gelbooru-based sites, `...+order:score` on
+moebooru ones). Resources whose template has no sort clause (`HasSortFeature: false`) use the site's
+default ordering. `IsNsfw` marks resources that host adult / not-safe-for-work content.
 
 Multiple tags are always passed to the API space-separated (e.g. `query=cat_ears red_coat female`),
 with underscores inside multi-word tags. The API re-joins them with each resource's `TagSeparator`
