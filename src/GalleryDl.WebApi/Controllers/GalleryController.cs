@@ -44,16 +44,11 @@ public sealed class GalleryController(
             return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid take",
                 detail: $"Parameter 'take' must be between 1 and {o.MaxTake}.");
 
-        // Sort by rating (highest first) whenever the resource supports it; otherwise use the
-        // site's default ordering. gallery-dl cannot reorder results, so the sort has to be baked
-        // into the search URL, which only some sites accept.
-        var urlTemplate = resourceOptions.RatingSortUrlTemplate ?? resourceOptions.UrlTemplate;
-
         // Callers always pass tags space-separated (e.g. "cat_ears red_coat female"); re-join them
         // with the separator this site expects, then URL-encode the whole thing.
         var tags = query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         var normalizedQuery = string.Join(resourceOptions.TagSeparator, tags);
-        var url = urlTemplate.Replace("{query}", Uri.EscapeDataString(normalizedQuery));
+        var url = resourceOptions.UrlTemplate.Replace("{query}", Uri.EscapeDataString(normalizedQuery));
 
         GalleryDlResult result;
         try

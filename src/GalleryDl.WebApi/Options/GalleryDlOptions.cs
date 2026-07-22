@@ -32,18 +32,13 @@ public sealed class GalleryDlOptions
 
 public sealed class ResourceOptions
 {
-    /// <summary>Gallery URL template with a {query} placeholder, e.g. "https://furry34.com/{query}".</summary>
+    /// <summary>
+    /// Gallery URL template with a {query} placeholder, e.g. "https://furry34.com/{query}".
+    /// gallery-dl cannot reorder results, so where a site supports sorting by score in its search
+    /// syntax the template bakes it in directly (e.g. "...&amp;tags={query}+sort:score:desc").
+    /// </summary>
     [Required]
     public string UrlTemplate { get; set; } = "";
-
-    /// <summary>
-    /// Optional variant of <see cref="UrlTemplate"/> with the site-specific "sort by score, highest
-    /// first" syntax baked in (e.g. "...&amp;tags={query}+sort:score:desc"). gallery-dl itself cannot
-    /// reorder results, so rating sorting only works where the site accepts it in the search query.
-    /// When set, it is always used in preference to <see cref="UrlTemplate"/>; null means the
-    /// resource cannot sort by rating and its default ordering is used.
-    /// </summary>
-    public string? RatingSortUrlTemplate { get; set; }
 
     /// <summary>
     /// Separator this site uses to combine multiple tags. Callers always pass tags as a
