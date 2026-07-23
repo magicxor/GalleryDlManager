@@ -15,8 +15,11 @@ public sealed class GalleryController(
     ILogger<GalleryController> logger) : ControllerBase
 {
     [HttpGet("/api/resources")]
-    public ActionResult<IEnumerable<string>> GetResources() =>
-        Ok(options.Value.Resources.Keys.Order());
+    public ActionResult<IEnumerable<string>> GetResources([FromQuery] bool allowUnsafe = false) =>
+        Ok(options.Value.Resources
+            .Where(kv => allowUnsafe || !kv.Value.IsNsfw)
+            .Select(kv => kv.Key)
+            .Order());
 
     [HttpGet("/api/download")]
     public async Task<IActionResult> Download(
@@ -24,6 +27,7 @@ public sealed class GalleryController(
         [FromQuery] string query,
         [FromQuery] int skip = 0,
         [FromQuery] int take = 1,
+        [FromQuery] bool allowUnsafe = false,
         CancellationToken ct = default)
     {
         var o = options.Value;
@@ -31,6 +35,10 @@ public sealed class GalleryController(
         if (string.IsNullOrWhiteSpace(resource) || !o.Resources.TryGetValue(resource.Trim(), out var resourceOptions))
             return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Unknown resource",
                 detail: $"Resource '{resource}' is not configured. Available resources: {string.Join(", ", o.Resources.Keys.Order())}.");
+
+        if (!allowUnsafe && resourceOptions.IsNsfw)
+            return Problem(statusCode: StatusCodes.Status403Forbidden, title: "NSFW resource not allowed",
+                detail: $"Resource '{resource}' hosts NSFW content and requires allowUnsafe=true.");
 
         if (string.IsNullOrWhiteSpace(query))
             return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid query",

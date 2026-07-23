@@ -71,7 +71,7 @@ Files appear on the host under `./downloads/dragons/` (the `/downloads` prefix i
 
 | Setting | Meaning | Default |
 | --- | --- | --- |
-| `Resources` | Map of resource id → `UrlTemplate` with a `{query}` placeholder, plus an optional `TagSeparator` (see below) and the `IsNsfw` / `HasSortFeature` flags | 47 preconfigured sites (12 more commented out as too slow for the 40s timeout) |
+| `Resources` | Map of resource id → `UrlTemplate` with a `{query}` placeholder, plus an optional `TagSeparator` (see below) and the `IsNsfw` / `HasSortFeature` flags | 57 preconfigured resources (12 more commented out as too slow for the 40s timeout) |
 | `AllowedExtensions` | Passed to gallery-dl as a `--filter` extension check | jpg, jpeg, png, webp |
 | `BlacklistTags` | Passed as `--tags-blacklist` (requires gallery-dl ≥ 1.32) | ai-generated, ... |
 | `MaxTake` | Upper bound for the `take` query parameter | 50 |
@@ -79,7 +79,14 @@ Files appear on the host under `./downloads/dragons/` (the `/downloads` prefix i
 | `ExtraArgs` | Extra CLI args appended verbatim | `[]` |
 
 Endpoints: `GET /api/resources`, `GET /api/download?resource=&query=&skip=&take=`
-(multipart/form-data on success; RFC 7807 problem JSON with 400/404/502/504 on errors).
+(multipart/form-data on success; RFC 7807 problem JSON with 400/403/404/502/504 on errors).
+
+Both endpoints are **SFW-by-default** via an optional `allowUnsafe` query flag (default `false`).
+When `false`, `/api/resources` lists only resources with `IsNsfw: false`, and `/api/download`
+rejects any `IsNsfw` resource with `403 Forbidden`. Pass `allowUnsafe=true` to include/allow NSFW
+resources. Several SFW variants of NSFW sites are preconfigured — dedicated safe mirrors
+(`e926.net`, `konachan.net`) and rating-filtered `-safe` entries (`wallhaven.cc-safe`,
+`gelbooru.com-safe`, `yande.re-safe`), alongside the existing `safebooru.org` / `sakugabooru.com`.
 
 Results are sorted by score (highest first) on sites that support it (`HasSortFeature: true`).
 gallery-dl itself cannot reorder results, so the sort syntax is baked directly into that resource's
@@ -107,6 +114,7 @@ downloaded in time.
 | `TimeoutSeconds` | HTTP timeout towards the WebApi | 60 |
 | `MaxTake` | Upper bound for the tool's `take` argument (can be stricter than the WebApi's `MaxTake`) | 10 |
 | `AllowedPathPrefixes` | Directories `download_gallery` may write under | `/downloads`, `/tmp` |
+| `AllowUnsafe` | Forward `allowUnsafe=true` to the WebApi so NSFW resources are listable/downloadable. Deliberately a server-side setting — the MCP tools do not expose it, so the AI agent cannot change it | `false` |
 
 Path rules for `download_gallery`: the path must be absolute, must not contain `.`/`..` segments,
 and must be under an allowed prefix. Existing files are never overwritten (the operation fails

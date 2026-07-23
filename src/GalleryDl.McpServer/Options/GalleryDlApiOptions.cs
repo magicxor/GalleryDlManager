@@ -19,4 +19,11 @@ public sealed class GalleryDlApiOptions
     /// <summary>Absolute directory prefixes the download_gallery tool is allowed to write under.</summary>
     [MinLength(1)]
     public List<string> AllowedPathPrefixes { get; set; } = [];
+
+    /// <summary>
+    /// When true, the server exposes and downloads NSFW resources (forwarded to the WebApi as
+    /// allowUnsafe=true). This is deliberately a server-side setting: the MCP tools do not expose
+    /// it, so the AI agent cannot change it. Defaults to false (SFW only).
+    /// </summary>
+    public bool AllowUnsafe { get; set; }
 }

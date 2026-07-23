@@ -1,5 +1,7 @@
 using System.Net.Http.Json;
+using GalleryDl.McpServer.Options;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 
 namespace GalleryDl.McpServer.Services;
@@ -7,10 +9,15 @@ namespace GalleryDl.McpServer.Services;
 public sealed record DownloadOutcome(bool Success, IReadOnlyList<string> SavedFiles, string? Error);
 
 /// <summary>Typed HttpClient for the GalleryDl.WebApi service.</summary>
-public sealed class GalleryDlApiClient(HttpClient http)
+public sealed class GalleryDlApiClient(HttpClient http, IOptions<GalleryDlApiOptions> options)
 {
+    // Server-side policy forwarded to the WebApi as allowUnsafe=true|false. Sourced from
+    // appsettings.json (default false / SFW-only); the MCP tools never expose it, so the AI agent
+    // cannot influence it.
+    private string AllowUnsafeValue => options.Value.AllowUnsafe ? "true" : "false";
+
     public async Task<string[]> ListResourcesAsync(CancellationToken ct) =>
-        await http.GetFromJsonAsync<string[]>("api/resources", ct) ?? [];
+        await http.GetFromJsonAsync<string[]>($"api/resources?allowUnsafe={AllowUnsafeValue}", ct) ?? [];
 
     /// <summary>
     /// Downloads files via the WebApi and saves them into <paramref name="targetDir"/>.
@@ -20,7 +27,7 @@ public sealed class GalleryDlApiClient(HttpClient http)
     public async Task<DownloadOutcome> DownloadAsync(
         string resource, string query, int skip, int take, string targetDir, CancellationToken ct)
     {
-        var uri = $"api/download?resource={Uri.EscapeDataString(resource)}&query={Uri.EscapeDataString(query)}&skip={skip}&take={take}";
+        var uri = $"api/download?resource={Uri.EscapeDataString(resource)}&query={Uri.EscapeDataString(query)}&skip={skip}&take={take}&allowUnsafe={AllowUnsafeValue}";
         using var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
 
         if (!response.IsSuccessStatusCode)
