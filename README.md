@@ -84,9 +84,9 @@ Endpoints: `GET /api/resources`, `GET /api/download?resource=&query=&skip=&take=
 Both endpoints are **SFW-by-default** via an optional `allowUnsafe` query flag (default `false`).
 When `false`, `/api/resources` lists only resources with `IsNsfw: false`, and `/api/download`
 rejects any `IsNsfw` resource with `403 Forbidden`. Pass `allowUnsafe=true` to include/allow NSFW
-resources. Several SFW variants of NSFW sites are preconfigured — dedicated safe mirrors
-(`e926.net`, `konachan.net`) and rating-filtered `-safe` entries (`wallhaven.cc-safe`,
-`gelbooru.com-safe`, `yande.re-safe`), alongside the existing `safebooru.org` / `sakugabooru.com`.
+resources. Several SFW variants of NSFW sites are preconfigured — rating-filtered `-safe` entries
+(`danbooru.donmai.us-safe`, `e621.net-safe`, `wallhaven.cc-safe`, `gelbooru.com-safe`,
+`yande.re-safe`), alongside the dedicated safe board `safebooru.org`.
 
 Results are sorted by score (highest first) on sites that support it (`HasSortFeature: true`).
 gallery-dl itself cannot reorder results, so the sort syntax is baked directly into that resource's
