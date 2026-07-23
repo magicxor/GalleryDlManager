@@ -72,7 +72,7 @@ Files appear on the host under `./downloads/dragons/` (the `/downloads` prefix i
 | Setting | Meaning | Default |
 | --- | --- | --- |
 | `Resources` | Map of resource id → `UrlTemplate` with a `{query}` placeholder, plus an optional `TagSeparator` (see below) and the `IsNsfw` / `HasSortFeature` flags | 47 preconfigured sites (12 more commented out as too slow for the 40s timeout) |
-| `AllowedExtensions` | Passed to gallery-dl as a `--filter` extension check | jpg, jpeg, png, gif, webp |
+| `AllowedExtensions` | Passed to gallery-dl as a `--filter` extension check | jpg, jpeg, png, webp |
 | `BlacklistTags` | Passed as `--tags-blacklist` (requires gallery-dl ≥ 1.32) | ai-generated, ... |
 | `MaxTake` | Upper bound for the `take` query parameter | 50 |
 | `TimeoutSeconds` | gallery-dl execution timeout | 40 |
