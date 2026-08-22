@@ -99,9 +99,15 @@ jobs:
         working-directory: ${{ runner.temp }}/digests
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
+          # A prerelease tag (1.2.3-beta) must not move :latest for everyone
+          # pulling the stable stream.
+          case "$VERSION" in
+            *-*) LATEST=() ;;
+            *) LATEST=(--tag "$IMAGE:latest") ;;
+          esac
           docker buildx imagetools create \
             --tag "$IMAGE:$VERSION" \
-            --tag "$IMAGE:latest" \
+            "${LATEST[@]}" \
             $(printf "$IMAGE@sha256:%s " *)
 
       - name: Inspect image
@@ -137,6 +143,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
             GalleryDl.McpServer-*.tar.gz
             GalleryDl.McpServer-*.zip
